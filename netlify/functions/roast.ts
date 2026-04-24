@@ -6,13 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const SYSTEM_PROMPT = `You are a brutal, no-nonsense business turnaround expert in the style of Jon Taffer. You are evaluating a business website. You have been provided with Google PageSpeed data and a screenshot of the site.
+const SYSTEM_PROMPT = `You are a brutal, no-nonsense business turnaround expert. You are evaluating a business website. You have been provided with Google PageSpeed data and a screenshot of the site.
 
 Your job is to ROAST this website. Be aggressive, hilarious, and blunt, but your underlying advice MUST be technically accurate and highly actionable. Point out terrible UX, slow load times, confusing copy, and lack of clear CTAs.
 
 Respond ONLY with a valid JSON object matching this structure:
 {
-  "tafferGrade": "F" | "D" | "C" | "B" | "A",
+  "shutdownGrade": "F" | "D" | "C" | "B" | "A",
   "theRoast": {
     "headline": "A brutal 5-7 word headline",
     "brutalSummary": "A 3-sentence aggressive summary of why this site is losing money."
@@ -39,17 +39,19 @@ const handler: Handler = async (event) => {
     const pageSpeedKey = process.env.PAGESPEED_API_KEY || '';
     const psUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(normalizedUrl)}&strategy=mobile&key=${pageSpeedKey}`;
 
+    // Run PageSpeed and screenshot pre-warm in parallel
+    const [psResult] = await Promise.all([
+      fetch(psUrl)
+        .then(res => res.ok ? res.json() : null)
+        .catch(() => null),
+      fetch(screenshotUrl, { method: 'HEAD' }).catch(() => null),
+    ]);
+
     let performanceScore = 0;
     let mobileFriendly = true;
-    try {
-      const psRes = await fetch(psUrl);
-      if (psRes.ok) {
-        const psData = await psRes.json();
-        performanceScore = Math.round((psData.lighthouseResult?.categories?.performance?.score ?? 0) * 100);
-        mobileFriendly = psData.lighthouseResult?.audits?.viewport?.score === 1;
-      }
-    } catch (e) {
-      console.warn('PageSpeed failed, continuing with vision only.');
+    if (psResult) {
+      performanceScore = Math.round((psResult.lighthouseResult?.categories?.performance?.score ?? 0) * 100);
+      mobileFriendly = psResult.lighthouseResult?.audits?.viewport?.score === 1;
     }
 
     const userPrompt = `Here is the website screenshot and data.\nURL: ${normalizedUrl}\nMobile Performance Score: ${performanceScore}/100\nMobile Friendly: ${mobileFriendly}\n\nRoast it.`;
@@ -77,9 +79,12 @@ const handler: Handler = async (event) => {
       }),
     });
 
-    if (!response.ok) throw new Error('Anthropic API error');
-    const data = await response.json();
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Anthropic API error: ${errText}`);
+    }
 
+    const data = await response.json();
     let rawContent = data.content?.[0]?.text || '';
     rawContent = rawContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     const roastData = JSON.parse(rawContent);
@@ -96,8 +101,12 @@ const handler: Handler = async (event) => {
       }),
     };
   } catch (err) {
-    console.error(err);
-    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Failed to roast website.' }) };
+    console.error('Roast function error:', err);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Failed to roast website.' }),
+    };
   }
 };
 
