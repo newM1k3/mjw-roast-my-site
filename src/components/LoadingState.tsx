@@ -64,7 +64,7 @@ export default function LoadingState() {
         </div>
 
         <div className="w-full max-w-xs space-y-3">
-          {['Screenshot captured', 'PageSpeed analyzed', 'Roast generating'].map((step, i) => (
+          {['Content captured', 'CTAs analyzed', 'Roast generating'].map((step, i) => (
             <div key={step} className="flex items-center gap-3">
               <div
                 className={`w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center border ${
