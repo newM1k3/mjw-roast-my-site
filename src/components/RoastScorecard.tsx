@@ -191,35 +191,6 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
               </div>
             </blockquote>
           </div>
-
-          <div className="order-1 lg:order-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-1 h-5 bg-slate-600 rounded-full" />
-              <h2 className="text-white font-black text-sm uppercase tracking-widest">Visual Evidence</h2>
-            </div>
-            <div className="relative rounded-xl overflow-hidden border-2 border-rose-500/50 shadow-xl shadow-rose-900/20 group">
-              <img
-                src={result.screenshotUrl}
-                alt={`Screenshot of ${result.url}`}
-                className="w-full object-cover object-top"
-                style={{ maxHeight: '300px' }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-end p-4">
-                <a
-                  href={result.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-white text-sm font-semibold"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  View Site
-                </a>
-              </div>
-              <div className="absolute top-2 right-2 bg-rose-600 text-white text-xs font-black px-2 py-1 rounded uppercase tracking-wider">
-                Exhibit A
-              </div>
-            </div>
-          </div>
         </div>
 
         <div className="bg-slate-900/40 border border-slate-800 rounded-2xl p-1">

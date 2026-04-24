@@ -6,9 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
-const SYSTEM_PROMPT = `You are a brutal, no-nonsense business turnaround expert. You are evaluating a business website. You have been provided with Google PageSpeed data and a screenshot of the site.
+const SYSTEM_PROMPT = `You are a brutal, no-nonsense business turnaround expert. You are evaluating a business website based on its URL and Google PageSpeed performance data.
 
-Your job is to ROAST this website. Be aggressive, hilarious, and blunt, but your underlying advice MUST be technically accurate and highly actionable. Point out terrible UX, slow load times, confusing copy, and lack of clear CTAs.
+Your job is to ROAST this website. Be aggressive, hilarious, and blunt, but your underlying advice MUST be technically accurate and highly actionable. Point out likely UX problems, slow load times, confusing copy, and lack of clear CTAs based on what you know about the industry and the performance data provided.
 
 Respond ONLY with a valid JSON object matching this structure:
 {
@@ -23,6 +23,13 @@ Respond ONLY with a valid JSON object matching this structure:
   "theBottomLine": "One final punchy sentence about the cost of doing nothing."
 }`;
 
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
 const handler: Handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: corsHeaders, body: '' };
   if (event.httpMethod !== 'POST') return { statusCode: 405, headers: corsHeaders, body: 'Method Not Allowed' };
@@ -33,58 +40,67 @@ const handler: Handler = async (event) => {
 
     const normalizedUrl = url.startsWith('http') ? url : `https://${url}`;
 
-    const screenshotApiKey = process.env.SCREENSHOTONE_ACCESS_KEY || '';
-    const screenshotUrl = `https://api.screenshotone.com/take?access_key=${screenshotApiKey}&url=${encodeURIComponent(normalizedUrl)}&full_page=false&viewport_width=1280&viewport_height=800&format=jpg&image_quality=80`;
-
     const pageSpeedKey = process.env.PAGESPEED_API_KEY || '';
     const psUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(normalizedUrl)}&strategy=mobile&key=${pageSpeedKey}`;
 
-    // Run PageSpeed and screenshot pre-warm in parallel
-    const [psResult] = await Promise.all([
-      fetch(psUrl)
-        .then(res => res.ok ? res.json() : null)
-        .catch(() => null),
-      fetch(screenshotUrl, { method: 'HEAD' }).catch(() => null),
-    ]);
-
+    // PageSpeed with 10s timeout
     let performanceScore = 0;
     let mobileFriendly = true;
-    if (psResult) {
-      performanceScore = Math.round((psResult.lighthouseResult?.categories?.performance?.score ?? 0) * 100);
-      mobileFriendly = psResult.lighthouseResult?.audits?.viewport?.score === 1;
+    let fcp = 'unknown';
+    let lcp = 'unknown';
+    let cls = 'unknown';
+
+    try {
+      const psRes = await fetchWithTimeout(psUrl, {}, 10000);
+      if (psRes.ok) {
+        const psData = await psRes.json();
+        const audits = psData.lighthouseResult?.audits;
+        const categories = psData.lighthouseResult?.categories;
+        performanceScore = Math.round((categories?.performance?.score ?? 0) * 100);
+        mobileFriendly = audits?.viewport?.score === 1;
+        fcp = audits?.['first-contentful-paint']?.displayValue || 'unknown';
+        lcp = audits?.['largest-contentful-paint']?.displayValue || 'unknown';
+        cls = audits?.['cumulative-layout-shift']?.displayValue || 'unknown';
+      }
+    } catch (e) {
+      console.warn('PageSpeed timed out or failed, continuing without it.');
     }
 
-    const userPrompt = `Here is the website screenshot and data.\nURL: ${normalizedUrl}\nMobile Performance Score: ${performanceScore}/100\nMobile Friendly: ${mobileFriendly}\n\nRoast it.`;
+    const userPrompt = `Roast this website brutally.
+URL: ${normalizedUrl}
+Mobile Performance Score: ${performanceScore}/100
+Mobile Friendly: ${mobileFriendly}
+First Contentful Paint: ${fcp}
+Largest Contentful Paint: ${lcp}
+Cumulative Layout Shift: ${cls}
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-        'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json',
+Based on the URL, industry, and these performance metrics — destroy them.`;
+
+    const claudeRes = await fetchWithTimeout(
+      'https://api.anthropic.com/v1/messages',
+      {
+        method: 'POST',
+        headers: {
+          'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+          'anthropic-version': '2023-06-01',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1500,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: userPrompt }],
+        }),
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'url', url: screenshotUrl } },
-              { type: 'text', text: userPrompt },
-            ],
-          },
-        ],
-      }),
-    });
+      12000
+    );
 
-    if (!response.ok) {
-      const errText = await response.text();
+    if (!claudeRes.ok) {
+      const errText = await claudeRes.text();
       throw new Error(`Anthropic API error: ${errText}`);
     }
 
-    const data = await response.json();
+    const data = await claudeRes.json();
     let rawContent = data.content?.[0]?.text || '';
     rawContent = rawContent.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
     const roastData = JSON.parse(rawContent);
@@ -94,7 +110,6 @@ const handler: Handler = async (event) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url: normalizedUrl,
-        screenshotUrl,
         performanceScore,
         mobileFriendly,
         ...roastData,
