@@ -62,7 +62,7 @@ const handler: Handler = async (event) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 1500,
         system: SYSTEM_PROMPT,
         messages: [
