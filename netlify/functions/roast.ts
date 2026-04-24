@@ -76,25 +76,20 @@ Cumulative Layout Shift: ${cls}
 
 Based on the URL, industry, and these performance metrics — destroy them.`;
 
-    const claudeRes = await fetchWithTimeout(
-      'https://api.anthropic.com/v1/messages',
-      {
-        method: 'POST',
-        headers: {
-          'x-api-key': process.env.ANTHROPIC_API_KEY || '',
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1500,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-      },
-      12000
-    );
-
+const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+  method: 'POST',
+  headers: {
+    'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+    'anthropic-version': '2023-06-01',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1500,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userPrompt }],
+  }),
+});
     if (!claudeRes.ok) {
       const errText = await claudeRes.text();
       throw new Error(`Anthropic API error: ${errText}`);
