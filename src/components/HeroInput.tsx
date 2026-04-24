@@ -36,7 +36,7 @@ export default function HeroInput({ onSubmit }: HeroInputProps) {
       <header className="relative z-10 flex items-center justify-between px-6 py-5 border-b border-slate-800/50">
         <div className="flex items-center gap-2">
           <Flame className="text-rose-500 w-6 h-6" />
-          <span className="text-white font-black text-lg tracking-tight uppercase">Taffer Takedown</span>
+          <span className="text-white font-black text-lg tracking-tight uppercase">The Shutdown</span>
         </div>
         <div className="hidden sm:flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/30 rounded px-3 py-1.5">
           <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
