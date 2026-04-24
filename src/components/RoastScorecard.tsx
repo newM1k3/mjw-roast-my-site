@@ -6,7 +6,7 @@ interface RoastScorecardProps {
   onReset: () => void;
 }
 
-const GRADE_CONFIG: Record<RoastResult['tafferGrade'], { color: string; bg: string; border: string; label: string }> = {
+const GRADE_CONFIG: Record<RoastResult['shutdownGrade'], { color: string; bg: string; border: string; label: string }> = {
   F: { color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/40', label: 'Catastrophic Failure' },
   D: { color: 'text-orange-500', bg: 'bg-orange-500/10', border: 'border-orange-500/40', label: 'Dangerously Bad' },
   C: { color: 'text-yellow-500', bg: 'bg-yellow-500/10', border: 'border-yellow-500/40', label: 'Mediocre at Best' },
@@ -76,7 +76,7 @@ function FailureSection({
 }
 
 export default function RoastScorecard({ result, onReset }: RoastScorecardProps) {
-  const grade = GRADE_CONFIG[result.tafferGrade];
+  const grade = GRADE_CONFIG[result.shutdownGrade];
   const totalViolations = result.uxFailures.length + result.speedFailures.length + result.copyFailures.length;
 
   return (
@@ -96,7 +96,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Flame className="text-rose-500 w-6 h-6" />
-            <span className="text-white font-black text-lg tracking-tight uppercase">Taffer Takedown</span>
+            <span className="text-white font-black text-lg tracking-tight uppercase">The Shutdown</span>
           </div>
           <button
             onClick={onReset}
@@ -115,7 +115,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             <div className="flex-shrink-0 text-center">
               <div className={`text-9xl font-black leading-none ${grade.color}`} style={{ textShadow: '0 0 80px currentColor' }}>
-                {result.tafferGrade}
+                {result.shutdownGrade}
               </div>
               <div className={`text-xs font-black uppercase tracking-widest mt-1 ${grade.color} opacity-70`}>
                 {grade.label}
@@ -187,7 +187,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
               </p>
               <div className="mt-4 pt-4 border-t border-slate-800 flex items-center gap-2">
                 <Flame className="w-4 h-4 text-rose-500" />
-                <span className="text-rose-500 text-xs font-black uppercase tracking-widest">Taffer Takedown Assessment</span>
+                <span className="text-rose-500 text-xs font-black uppercase tracking-widest">The Shutdown Assessment</span>
               </div>
             </blockquote>
           </div>
@@ -275,7 +275,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto">
             <a
-              href="https://mjwdesign.com/playbook"
+              href="https://mjwdesign.ca/playbook"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 group flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white font-bold py-4 px-6 rounded-xl transition-all duration-150 text-center"
@@ -284,7 +284,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
               <span>Get the MJW Communication Playbook</span>
             </a>
             <a
-              href="https://mjwdesign.com"
+              href="https://mjwdesign.ca"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 group relative flex items-center justify-center gap-2 bg-rose-600 hover:bg-rose-500 text-white font-black py-4 px-6 rounded-xl transition-all duration-150 text-center shadow-lg shadow-rose-900/50 overflow-hidden"
@@ -299,7 +299,7 @@ export default function RoastScorecard({ result, onReset }: RoastScorecardProps)
 
       <footer className="relative z-10 border-t border-slate-800/40 px-6 py-6 text-center mt-10">
         <p className="text-slate-600 text-xs uppercase tracking-widest">
-          Taffer Takedown — A MJW Personal App Platform Tool
+          The Shutdown — A MJW Personal App Platform Tool
         </p>
       </footer>
     </div>
